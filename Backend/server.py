@@ -304,21 +304,38 @@ def load_wav_bytes(data: bytes) -> Optional[np.ndarray]:
         return None
 
 
-def save_to_supabase(file_bytes: bytes, file_name: str, alerts: list[dict]):
-    """Upload the WAV file to storage and insert alert rows."""
+def save_to_supabase(file_bytes: bytes, file_name: str, alerts: list[dict],
+                     duration_seconds: float = 0.0):
+    """
+    Upload WAV to storage, insert one row into 'recordings' table,
+    then insert one row per alert into 'audio_detections'.
+    """
     if not _sb:
         return
+
+    public_url = ""
     try:
-        # Upload WAV to storage bucket
         _sb.storage.from_(SUPABASE_BUCKET).upload(
             file_name, file_bytes,
             file_options={"content-type": "audio/wav", "upsert": "false"}
         )
-        print(f"[Supabase] ✔ uploaded {file_name}")
+        public_url = _sb.storage.from_(SUPABASE_BUCKET).get_public_url(file_name)
+        print(f"[Supabase] ✔ uploaded {file_name}  url={public_url}")
     except Exception as e:
         print(f"[Supabase] Upload error: {e}")
 
-    # Insert each alert row
+    # Insert master recording row
+    try:
+        _sb.table("recordings").insert({
+            "file_name":        file_name,
+            "public_url":       public_url,
+            "duration_seconds": round(duration_seconds, 2),
+            "alert_count":      len(alerts),
+        }).execute()
+    except Exception as e:
+        print(f"[Supabase] recordings insert error: {e}")
+
+    # Insert one row per alert
     for alert in alerts:
         try:
             _sb.table("audio_detections").insert({
@@ -329,7 +346,7 @@ def save_to_supabase(file_bytes: bytes, file_name: str, alerts: list[dict]):
                 "transcript": alert.get("transcript"),
             }).execute()
         except Exception as e:
-            print(f"[Supabase] Insert error: {e}")
+            print(f"[Supabase] alert insert error: {e}")
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -382,19 +399,34 @@ async def websocket_stream(websocket: WebSocket):
                                 "type": "alert", **alert
                             })
 
-                    # Save WAV + alerts to Supabase
+                    # Save WAV + alerts to Supabase (synchronous so URL is ready before "done")
+                    public_url       = ""
+                    duration_seconds = 0.0
                     if raw_pcm_buffer:
-                        wav_bytes = _pcm_to_wav_bytes(bytes(raw_pcm_buffer), 44100)
-                        threading.Thread(
-                            target=save_to_supabase,
-                            args=(wav_bytes, file_name, all_alerts),
-                            daemon=True
-                        ).start()
+                        wav_bytes        = _pcm_to_wav_bytes(bytes(raw_pcm_buffer), 44100)
+                        duration_seconds = len(raw_pcm_buffer) / (44100 * 2)
+
+                        # Run synchronously in executor so we can return the real URL
+                        import asyncio
+                        loop = asyncio.get_event_loop()
+                        await loop.run_in_executor(
+                            None,
+                            save_to_supabase,
+                            wav_bytes, file_name, all_alerts, duration_seconds
+                        )
+
+                        if _sb:
+                            try:
+                                public_url = _sb.storage.from_(SUPABASE_BUCKET).get_public_url(file_name)
+                            except Exception:
+                                pass
 
                     await websocket.send_json({
-                        "type": "done",
-                        "file_name": file_name,
-                        "alert_count": len(all_alerts)
+                        "type":             "done",
+                        "file_name":        file_name,
+                        "public_url":       public_url,
+                        "duration_seconds": duration_seconds,
+                        "alert_count":      len(all_alerts),
                     })
                     break
 
@@ -476,6 +508,39 @@ async def upload_recording(file: UploadFile = File(...)):
 @app.get("/health")
 def health():
     return {"status": "ok", "supabase": _sb is not None}
+
+
+# ─────────────────────────────────────────────────────────────────
+# GET /recordings  — list all recordings (for Flutter to load on startup)
+# ─────────────────────────────────────────────────────────────────
+
+@app.get("/recordings")
+def get_recordings():
+    if not _sb:
+        raise HTTPException(503, "Supabase not connected")
+    try:
+        resp = _sb.table("recordings") \
+                  .select("*") \
+                  .order("created_at", desc=True) \
+                  .execute()
+        return {"recordings": resp.data or []}
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+@app.get("/recordings/{file_name}/alerts")
+def get_alerts_for_recording(file_name: str):
+    if not _sb:
+        raise HTTPException(503, "Supabase not connected")
+    try:
+        resp = _sb.table("audio_detections") \
+                  .select("*") \
+                  .eq("file_name", file_name) \
+                  .order("triggered_at", desc=False) \
+                  .execute()
+        return {"alerts": resp.data or []}
+    except Exception as e:
+        raise HTTPException(500, str(e))
 
 
 # ─────────────────────────────────────────────────────────────────

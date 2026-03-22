@@ -14,11 +14,14 @@ class LiveDetectionService {
 
   WebSocketChannel? _channel;
   StreamSubscription? _wsSubscription;
-  final _alertController = StreamController<DetectionAlert>.broadcast();
+  final _alertController  = StreamController<DetectionAlert>.broadcast();
   final _statusController = StreamController<StreamStatus>.broadcast();
+  final _doneController   = StreamController<DoneMessage>.broadcast();
 
   Stream<DetectionAlert> get alerts => _alertController.stream;
   Stream<StreamStatus>   get status => _statusController.stream;
+  /// Fires once when the server sends the final "done" message with URL + duration
+  Stream<DoneMessage>    get onDone  => _doneController.stream;
 
   bool _connected = false;
   String? _currentFileName;
@@ -40,6 +43,7 @@ class LiveDetectionService {
           if (type == 'alert') {
             _alertController.add(DetectionAlert.fromJson(json));
           } else if (type == 'done') {
+            _doneController.add(DoneMessage.fromJson(json));
             _statusController.add(StreamStatus.done);
           } else if (type == 'error') {
             _statusController.add(StreamStatus.error);
@@ -83,12 +87,37 @@ class LiveDetectionService {
     await disconnect();
     await _alertController.close();
     await _statusController.close();
+    await _doneController.close();
   }
 }
 
 // ─────────────────────────────────────────────────────────────────
 // DATA MODELS
 // ─────────────────────────────────────────────────────────────────
+
+class DoneMessage {
+  final String fileName;
+  final String publicUrl;
+  final double durationSeconds;
+  final int    alertCount;
+
+  DoneMessage({
+    required this.fileName,
+    required this.publicUrl,
+    required this.durationSeconds,
+    required this.alertCount,
+  });
+
+  factory DoneMessage.fromJson(Map<String, dynamic> j) => DoneMessage(
+        fileName:        j['file_name']        as String? ?? '',
+        publicUrl:       j['public_url']        as String? ?? '',
+        durationSeconds: (j['duration_seconds'] as num?)?.toDouble() ?? 0,
+        alertCount:      j['alert_count']       as int?    ?? 0,
+      );
+
+  Duration get duration =>
+      Duration(milliseconds: (durationSeconds * 1000).round());
+}
 
 class DetectionAlert {
   final String source;
