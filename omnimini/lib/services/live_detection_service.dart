@@ -8,7 +8,7 @@ import 'package:uuid/uuid.dart';
 /// and surfaces detection alerts in real time.
 class LiveDetectionService {
   // ── Change this to your server IP/hostname ───────────────────
-  static const String _serverHost = '192.168.1.37'; // ← your machine's LAN IP
+  static const String _serverHost = '100.95.213.57'; // ← your machine's LAN IP
   static const int    _serverPort = 8000;
   // ─────────────────────────────────────────────────────────────
 

@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Env files
+.env
+.env.*
+
+# Git
+.git
+.gitignore
+
+# Virtual env
+venv/
+env/
+
+# OS files
+.DS_Store
+
+# Audio files
+*.wav
+*.mp3
+
+# Model/cache
+.cache/
+whisper/
+models/
+
+# Logs
+*.log

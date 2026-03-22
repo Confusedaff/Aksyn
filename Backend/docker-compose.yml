@@ -1,0 +1,13 @@
+services:
+  voice-server:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - model-cache:/root/.cache
+    restart: unless-stopped
+
+volumes:
+  model-cache:

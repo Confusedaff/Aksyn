@@ -5,7 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 // ── Change to your server's LAN IP ───────────────────────────────
-const String _backendBase = 'http://192.168.1.37:8000';
+const String _backendBase = 'http://100.95.213.57:8000';
 // ─────────────────────────────────────────────────────────────────
 
 class SupabaseService {
