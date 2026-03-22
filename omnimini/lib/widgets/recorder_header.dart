@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
 
-/// Top app bar showing the VŌICE logo and a clip counter.
 class RecorderHeader extends StatelessWidget {
   final int clipCount;
 
