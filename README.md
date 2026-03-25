@@ -28,7 +28,7 @@ The system runs two parallel AI detectors on every audio chunk:
 
 | Detector | Model | Detects |
 |---|---|---|
-| **STT** | OpenAI Whisper | Emergency keywords ("help", "fire", "call 911", etc.) |
+| **STT** | OpenAI Whisper | Emergency keywords ("help", "fire", "call Helpline", etc.) |
 | **Sound** | Google YAMNet | Audio events (screaming, gunshots, alarms, glass breaking, etc.) |
 
 Audio is split into **4-second chunks with 1-second overlap**, processed in parallel threads, and alerts are fired immediately when a threat is detected. Results are logged to a **Supabase** database.
