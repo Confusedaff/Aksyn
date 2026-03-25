@@ -13,7 +13,7 @@
     <td align="center"><b>Live Recording</b></td>
   </tr>
   <tr>
-    <td align="center"><img src="https://github.com/user-attachments/assets/6836e640-3021-4702-bb8e-a26e93f039a1" width="160"/></td>
+    <td align="center"><img src="https://github.com/user-attachments/assets/6d860c8a-c5b7-4791-a914-402882144290" width="160"/></td>
     <td align="center"><img src="https://github.com/user-attachments/assets/4ca60a15-c3fc-4680-8376-6b8a5b38fab3" width="160"/></td>
     <td align="center"><img src="https://github.com/user-attachments/assets/d89ffb4e-53be-4b05-a19d-73d882453d07" width="160"/></td>
     <td align="center"><img src="https://github.com/user-attachments/assets/e1ced86a-5ada-4718-8cea-6cee85f0a47a" width="160"/></td>
